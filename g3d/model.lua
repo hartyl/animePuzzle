@@ -33,7 +33,7 @@ model.instanceShader = g3d.instanceShader
 -- this returns a new instance of the model class
 -- a model must be given a .obj file or equivalent lua table, and a texture
 -- translation, rotation, and scale are all 3d vectors and are all optional
-local function newModel(verts, texture, translation, rotation, scale, noMap)
+local function newModel(verts, texture, translation, rotation, scale, noMap, vertexFormat)
     local self = setmetatable({}, model)
     local map, bones
 
@@ -54,6 +54,7 @@ local function newModel(verts, texture, translation, rotation, scale, noMap)
     -- initialize my variables
     self.verts = verts
     self.texture = texture
+	self.vertexFormat = vertexFormat or self.vertexFormat
     self.mesh = lg.newMesh(self.vertexFormat, self.verts, "triangles")
     self.mesh:setTexture(self.texture)
     if map then

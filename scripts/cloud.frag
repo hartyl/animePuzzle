@@ -1,5 +1,4 @@
-#pragma language glsl3
-noperspective varying vec2 texCoord;
+varying vec2 texCoord;
 varying vec3 cameraForward;
 const float mul = 7/8.1;
 vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
