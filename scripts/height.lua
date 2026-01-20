@@ -1,4 +1,8 @@
-local cos = math.sin
+local Far = require 'g3d'.camera.farClip
+local FAR = Far^-3*1000
+local far = Far * .8
 return function (x,y)
-	return cos(x/200)*30+cos(y/500)*20-(x*x+y*y)*0.00005
+	return (
+	-(x+x-far)*x*(x+x+far))
+	*FAR
 end

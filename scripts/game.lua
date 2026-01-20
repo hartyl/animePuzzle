@@ -2,120 +2,111 @@ local g3d = require 'g3d'
 
 local insert = table.insert
 
-local width, height = 10, 3
-local iwidth, iheight = 1/width, 1/height
-local mesh = {}
-for x=-iwidth*.5,iwidth*.5,iwidth do
-for y=-iheight*.5,iheight*.5,iheight do
-		mesh[#mesh+1] = {iwidth-x,iheight-y,}
-	end
-end
-local map = {1, 2, 3, 2, 4, 3}
-
-local tile = g3d.newModel(mesh, im, {.5,0,.5}, nil, nil, nil,
-	{{"VertexPosition", "float", 2}})
---, "assets/earth.png")--, nil, nil, g3d.camera.farClip)
-tile.mesh:setVertexMap(map)
-tile.width = width
-tile.height = height
-
-function tile.reset()
-	tile.positions = {}
-	local offx, offy = iwidth/2,iheight/2
-	for y=0,height-1 do
-		for x=0,width-1 do
-			insert(tile.positions, {x*iwidth-1/2,y*iheight - 1/2,(y-1)*iheight+offy,(x-1)*iwidth+offx,})
+local function reset(self)
+	self.positions = {}
+	for y=0,self.height-1 do
+		for x=0,self.width-1 do
+			insert(self.positions, {
+				(x-.5)*self.iwidth-.5,
+				(y-.5)*self.iheight-.5,
+				(y-.5)*self.iheight,
+				(x-.5)*self.iwidth,
+			})
 		end
 	end
-	tile.emptySpot = {tile.positions[1][1],tile.positions[1][2]}
-	tile.positions[1][1] = math.huge
-	tile.positions[1][2] = math.huge
-	tile:instanciate(tile.positions)
-	tile.anim = 1
+	self.emptySpot = {self.positions[1][1],self.positions[1][2]}
+	self.positions[1][1] = math.huge
+	self.positions[1][2] = math.huge
+	self:instanciate(self.positions)
+	self.anim = 1
 end
-tile.reset()
-function tile.shuffle()
-	tile.positions[1][1] = tile.emptySpot[1]
-	tile.positions[1][2] = tile.emptySpot[2]
-	for _,a in pairs(tile.positions) do
-		local b = tile.positions[math.random(#tile.positions)]
+local function check(self)
+	local solved = true
+	self.positions[1][1] = self.emptySpot[1]
+	self.positions[1][2] = self.emptySpot[2]
+	local i = 1
+	for y=0,self.height-1 do
+		for x=0,self.width-1 do
+			solved = solved and
+			math.abs(self.positions[i][1] - ((x-.5)*self.iwidth-.5)) < self.iwidth/2 and
+			math.abs(self.positions[i][2] - ((y-.5)*self.iheight-.5)) < self.iheight/2
+			i=i+1
+		end
+		if not solved then break end
+	end
+	self.emptySpot = {self.positions[1][1],self.positions[1][2]}
+	self.positions[1][1] = math.huge
+	self.positions[1][2] = math.huge
+	return solved
+end
+
+local function shuffle(self)
+	self.positions[1][1] = self.emptySpot[1]
+	self.positions[1][2] = self.emptySpot[2]
+	for _,a in pairs(self.positions) do
+		local b = self.positions[math.random(#self.positions)]
 		local x,y = a[1],a[2]
 		a[1],a[2]=b[1],b[2]
 		b[1],b[2]=x,y
 	end
-	tile.emptySpot = {tile.positions[1][1],tile.positions[1][2]}
-	tile.positions[1][1] = math.huge
-	tile.positions[1][2] = math.huge
-	tile:instanciate(tile.positions)
-	tile.anim = 1
+	self.emptySpot = {self.positions[1][1],self.positions[1][2]}
+	self.positions[1][1] = math.huge
+	self.positions[1][2] = math.huge
+	self:instanciate(self.positions)
+	self.anim = 1
 end
 
-tile:lookAt(g3d.camera.position)
-
-function tile.swipeAny(dx,dy)
-	local dx, dy = dy, dx
-	local ex, ey = tile.emptySpot[1]-dx*iwidth, tile.emptySpot[2]-dy*iheight
-	for i=2, #tile.positions do
-		local v = tile.positions[i]
-		if math.abs(v[2]-ey)<iheight/2 then
-			if math.abs(v[1]-ex)<iwidth/2 then --and v[1] == tile.emptySpot[1]+dx then
-			local x,y = v[1], v[2]
-			tile.positions[i][1],tile.positions[i][2] = tile.positions[i][1]+dx*iwidth, tile.positions[i][2]+dy*iheight
-			tile.emptySpot = {x,y}
-			tile.anim = 0
-			tile.moving = i
-			return
-		end
-		end
-	end
-end
-
-function tile.swipe(X,Y, dx,dy)
-	local i = X+(Y-1)*width
-	local dx, dy = dy, dx
-	local ex, ey = tile.emptySpot[1]-dx*iwidth, tile.emptySpot[2]-dy*iheight
-	local v = tile.positions[i]
-	if math.abs(v[2]-ey)<iheight/2 then
-		if math.abs(v[1]-ex)<iwidth/2 then --and v[1] == tile.emptySpot[1]+dx then
-			local x,y = v[1], v[2]
-			tile.positions[i][1],tile.positions[i][2] = tile.positions[i][1]+dx*iwidth, tile.positions[i][2]+dy*iheight
-			tile.emptySpot = {x,y}
-			tile.anim = 0
-			tile.moving = i
+local function swipeAny(self, dx,dy)
+	local ex, ey = self.emptySpot[1]-dx*self.iwidth, self.emptySpot[2]-dy*self.iheight
+	for i=2, #self.positions do
+		local v = self.positions[i]
+		if math.abs(v[2]-ey)<self.iheight/2 then
+			if math.abs(v[1]-ex)<self.iwidth/2 then --and v[1] == self.emptySpot[1]+dx then
+				local x,y = v[1], v[2]
+				self.positions[i][1],self.positions[i][2] =
+					self.positions[i][1]+dx*self.iwidth,
+					self.positions[i][2]+dy*self.iheight
+				self.emptySpot = {x,y}
+				self.anim = 0
+				self.moving = i
+				return
+			end
 		end
 	end
 end
 
+local function swipe(self, X,Y, dx,dy)
+	local i = X+(Y-1)*self.width
+	local ex, ey = self.emptySpot[1]-dx*self.iwidth, self.emptySpot[2]-dy*self.iheight
+	local v = self.positions[i]
+	if math.abs(v[2]-ey)<self.iheight/2 then
+		if math.abs(v[1]-ex)<self.iwidth/2 then --and v[1] == self.emptySpot[1]+dx then
+			local x,y = v[1], v[2]
+			self.positions[i][1],self.positions[i][2] = self.positions[i][1]+dx*self.iwidth, self.positions[i][2]+dy*self.iheight
+			self.emptySpot = {x,y}
+			self.anim = 0
+			self.moving = i
+		end
+	end
+end
 
-local s = [[
+local shader1 = love.graphics.newShader( [[
 attribute vec4 InstancePosition;
-uniform lowp mat4 projectionMatrix; // handled by the camera
-uniform mat3 viewMatrix;       // handled by the camera
-uniform mat4 modelMatrix;      // models send their own model matrices when drawn
-uniform bool isCanvasEnabled;  // detect when this model is being rendered to a canvas
+uniform lowp mat4 projectionMatrix;
+uniform mat3 viewMatrix;
+uniform mat4 modelMatrix;
 
-// the vertex normal attribute must be defined, as it is custom unlike the other attributes
-attribute vec3 VertexNormal;
-attribute vec4 groupId;
-
-// define some varying vectors that are useful for writing custom fragment shaders
 varying vec3 worldPosition;
 varying vec3 viewPosition;
 
 varying vec2 texCoord;
 
 vec4 position(mat4 transformProjection, vec4 vertexPosition) {
-    // calculate the positions of the transformed coordinates on the screen
-    // save each step of the process, as these are often useful when writing custom fragment shaders
     worldPosition = (modelMatrix * (vec4(InstancePosition.xy,0,0) +vertexPosition)).xyz;
-	texCoord = InstancePosition.zw + vertexPosition.yx;
-	texCoord.y = 1-texCoord.y;
+	texCoord = InstancePosition.wz + vertexPosition.xy;
     viewPosition = viewMatrix * worldPosition;
     return projectionMatrix * vec4(viewPosition,1);
-} ]]
-
-tile.shader1 = love.graphics.newShader( s,
-[[
+} ]] , [[
 varying vec2 texCoord;
 vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
 {
@@ -123,44 +114,92 @@ vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
 	texcolor.a = 1;
     return texcolor * color;
 }
-]]
-)
-tile.shader2 = love.graphics.newShader( [[
+]])
+
+local shader2 = love.graphics.newShader( [[
 attribute vec4 InstancePosition;
-uniform lowp mat4 projectionMatrix; // handled by the camera
-uniform mat3 viewMatrix;       // handled by the camera
-uniform mat4 modelMatrix;      // models send their own model matrices when drawn
+uniform lowp mat4 projectionMatrix;
+uniform mat3 viewMatrix;
+uniform mat4 modelMatrix;
 
-// the vertex normal attribute must be defined, as it is custom unlike the other attributes
-attribute vec3 VertexNormal;
-attribute vec4 groupId;
-
-// define some varying vectors that are useful for writing custom fragment shaders
 varying vec3 worldPosition;
 varying vec3 viewPosition;
 
 varying vec2 texCoord;
 
 vec4 position(mat4 transformProjection, vec4 vertexPosition) {
-    // calculate the positions of the transformed coordinates on the screen
-    // save each step of the process, as these are often useful when writing custom fragment shaders
     worldPosition = (modelMatrix * (vec4(InstancePosition.xy,0,0) +vertexPosition)).xyz;
 	texCoord = InstancePosition.zw + vertexPosition.yx;
-	texCoord.y = 1-texCoord.y;
     viewPosition = viewMatrix * worldPosition;
     return projectionMatrix * vec4(viewPosition,1);
-} ]]
-,
-[[
+}
+]],[[
 varying vec2 texCoord;
 vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
 {
-    return vec4(texCoord.x, 1-texCoord.y,0,1);
+    return vec4(texCoord,0,1);
 }
-]]
-)
+]])
 
-tile.shader1:send("projectionMatrix", g3d.camera.projectionMatrix)
-tile.shader2:send("projectionMatrix", g3d.camera.projectionMatrix)
+shader1:send("projectionMatrix", g3d.camera.projectionMatrix)
+shader2:send("projectionMatrix", g3d.camera.projectionMatrix)
+
+SPD = 10
+local function update(self,dt)
+	if self.anim < 1 then
+		local spd = dt * SPD*math.max(self.anim,.1)
+		self.anim = self.anim + spd
+		self.anim = (self.anim >= 1-spd and 1 or self.anim)
+		local p = self.positions[self.moving]
+		local anim = self.anim
+		local nanim = 1-anim
+		self.instanceMesh:setVertex(self.moving, {p[1]*anim + self.emptySpot[1]*nanim, p[2]*anim + self.emptySpot[2]*nanim, p[3], p[4]})
+	else
+		self.anim = 2
+	end
+end
+
+local map = {1, 2, 3, 2, 4, 3}
+
+return function (im, width, height)
+local iwidth, iheight = 1/width, 1/height
+local mesh = {}
+for x=iwidth*.5,-iwidth*.5,-iwidth do
+for y=-iheight*.5,iheight*.5,iheight do
+		mesh[#mesh+1] = {iwidth-x,iheight-y,}
+	end
+end
+
+local tile = g3d.newModel(mesh, im, {0,.5,.5}, nil, nil, nil,
+	{{"VertexPosition", "float", 2}})
+
+tile:setRotation(math.pi+1,0,0)
+
+tile.mesh:setVertexMap(map)
+tile.width = width
+tile.height = height
+local w,h = im:getDimensions()
+local m = math.min(w,h)
+
+tile:setScale(w/m,h/m,1)
+
+tile.iwidth = iwidth
+tile.iheight = iheight
+
+tile.reset = reset
+tile:reset()
+tile.check = check
+assert(tile:check())
+tile.shuffle = shuffle
+
+
+tile.swipeAny = swipeAny
+tile.swipe = swipe
+
+tile.shader1 = shader1
+tile.shader2 = shader2
+
+tile.update = update
 
 return tile
+end
