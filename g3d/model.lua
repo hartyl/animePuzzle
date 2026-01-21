@@ -182,7 +182,6 @@ function model:draw(shader)
     lg.setShader(shader)
     self:updateMatrixTranslation()
     shader:send("modelMatrix", self.matrix)
-	-- shader:send("isCanvasEnabled", lg.getCanvas() ~= nil)
     lg.draw(self.mesh)
 end
 

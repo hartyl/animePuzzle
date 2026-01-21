@@ -23,19 +23,22 @@ t[3] = 100
 cloud:setTranslation(unpack(t))
 local changing = 1
 local camSpeed = 0
-local cloudSize = 1
+local cloudSize = 0
+CloudMove = 1
 cloud.update = function (dt)
 	if LevelSelect == true then
 		changing = 1
-		camSpeed = math.min(camSpeed + dt, (300-camera.position[3])/8)
-		camera.position[3] = camera.position[3] + camSpeed
+		camSpeed = math.min(camSpeed + dt, (camera.top-camera.position[3])/8)
 	else
 		camSpeed = math.max(camSpeed - dt*5, (1-camera.position[3])/8)
-		camera.position[3] = camera.position[3] + camSpeed
 		if camera.position[3] < 50 then
 			changing = -1
 		end
 	end
+	if camSpeed == 0 then CloudMove = 0 end
+
+	camera.position[3] = camera.position[3] + camSpeed * CloudMove
+
 	cloudSize = math.min(1,math.max(0,cloudSize + changing * dt))
 	cloud.shader:send('size', cloudSize)
 	return cloudSize

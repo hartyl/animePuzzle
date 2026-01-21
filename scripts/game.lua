@@ -14,16 +14,12 @@ local function reset(self)
 			})
 		end
 	end
-	self.emptySpot = {self.positions[1][1],self.positions[1][2]}
-	self.positions[1][1] = math.huge
-	self.positions[1][2] = math.huge
+	self.emptySpot = {self.positions[1][1]-self.iwidth,self.positions[1][2]}
 	self:instanciate(self.positions)
 	self.anim = 1
 end
 local function check(self)
 	local solved = true
-	self.positions[1][1] = self.emptySpot[1]
-	self.positions[1][2] = self.emptySpot[2]
 	local i = 1
 	for y=0,self.height-1 do
 		for x=0,self.width-1 do
@@ -34,45 +30,34 @@ local function check(self)
 		end
 		if not solved then break end
 	end
-	self.emptySpot = {self.positions[1][1],self.positions[1][2]}
-	self.positions[1][1] = math.huge
-	self.positions[1][2] = math.huge
 	return solved
-end
-
-local function shuffle(self)
-	self.positions[1][1] = self.emptySpot[1]
-	self.positions[1][2] = self.emptySpot[2]
-	for _,a in pairs(self.positions) do
-		local b = self.positions[math.random(#self.positions)]
-		local x,y = a[1],a[2]
-		a[1],a[2]=b[1],b[2]
-		b[1],b[2]=x,y
-	end
-	self.emptySpot = {self.positions[1][1],self.positions[1][2]}
-	self.positions[1][1] = math.huge
-	self.positions[1][2] = math.huge
-	self:instanciate(self.positions)
-	self.anim = 1
 end
 
 local function swipeAny(self, dx,dy)
 	local ex, ey = self.emptySpot[1]-dx*self.iwidth, self.emptySpot[2]-dy*self.iheight
-	for i=2, #self.positions do
+	for i=1, #self.positions do
 		local v = self.positions[i]
-		if math.abs(v[2]-ey)<self.iheight/2 then
-			if math.abs(v[1]-ex)<self.iwidth/2 then --and v[1] == self.emptySpot[1]+dx then
-				local x,y = v[1], v[2]
-				self.positions[i][1],self.positions[i][2] =
-					self.positions[i][1]+dx*self.iwidth,
-					self.positions[i][2]+dy*self.iheight
-				self.emptySpot = {x,y}
-				self.anim = 0
-				self.moving = i
-				return
-			end
+		if math.abs(v[2]-ey)<self.iheight/2 and math.abs(v[1]-ex)<self.iwidth/2 then
+			local x,y = v[1], v[2]
+			self.positions[i][1],self.positions[i][2] =
+			self.positions[i][1]+dx*self.iwidth,
+			self.positions[i][2]+dy*self.iheight
+			self.emptySpot = {x,y}
+			self.anim = 0
+			self.moving = i
+			return
 		end
 	end
+end
+
+local function shuffle(self)
+	for _=1,100 do
+		local h = math.random(0,1)
+		local v = 1-h
+		local d = math.random(0,1)*2-1
+		self:swipeAny(h*d,v*d)
+	end
+	self:instanciate(self.positions)
 end
 
 local function swipe(self, X,Y, dx,dy)
@@ -80,7 +65,7 @@ local function swipe(self, X,Y, dx,dy)
 	local ex, ey = self.emptySpot[1]-dx*self.iwidth, self.emptySpot[2]-dy*self.iheight
 	local v = self.positions[i]
 	if math.abs(v[2]-ey)<self.iheight/2 then
-		if math.abs(v[1]-ex)<self.iwidth/2 then --and v[1] == self.emptySpot[1]+dx then
+		if math.abs(v[1]-ex)<self.iwidth/2 then
 			local x,y = v[1], v[2]
 			self.positions[i][1],self.positions[i][2] = self.positions[i][1]+dx*self.iwidth, self.positions[i][2]+dy*self.iheight
 			self.emptySpot = {x,y}
@@ -129,7 +114,7 @@ varying vec2 texCoord;
 
 vec4 position(mat4 transformProjection, vec4 vertexPosition) {
     worldPosition = (modelMatrix * (vec4(InstancePosition.xy,0,0) +vertexPosition)).xyz;
-	texCoord = InstancePosition.zw + vertexPosition.yx;
+	texCoord = InstancePosition.wz + vertexPosition.xy;
     viewPosition = viewMatrix * worldPosition;
     return projectionMatrix * vec4(viewPosition,1);
 }
@@ -140,9 +125,30 @@ vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
     return vec4(texCoord,0,1);
 }
 ]])
+local shader3 = love.graphics.newShader( [[
+attribute vec4 InstancePosition;
+uniform lowp mat4 projectionMatrix;
+uniform mat3 viewMatrix;
+uniform mat4 modelMatrix;
+
+varying vec3 worldPosition;
+varying vec3 viewPosition;
+
+vec4 position(mat4 transformProjection, vec4 vertexPosition) {
+    worldPosition = (modelMatrix * (vec4(InstancePosition.xy,0,0) +vertexPosition)).xyz;
+    viewPosition = viewMatrix * worldPosition;
+    return projectionMatrix * vec4(viewPosition,1);
+}
+]],[[
+vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
+{
+    return vec4(color.rg,0,1);
+}
+]])
 
 shader1:send("projectionMatrix", g3d.camera.projectionMatrix)
 shader2:send("projectionMatrix", g3d.camera.projectionMatrix)
+shader3:send("projectionMatrix", g3d.camera.projectionMatrix)
 
 SPD = 10
 local function update(self,dt)
@@ -154,8 +160,10 @@ local function update(self,dt)
 		local anim = self.anim
 		local nanim = 1-anim
 		self.instanceMesh:setVertex(self.moving, {p[1]*anim + self.emptySpot[1]*nanim, p[2]*anim + self.emptySpot[2]*nanim, p[3], p[4]})
-	else
+		self.done = false
+	elseif self.anim == 1 then
 		self.anim = 2
+		self.done = self:check()
 	end
 end
 
@@ -189,7 +197,7 @@ tile.iheight = iheight
 tile.reset = reset
 tile:reset()
 tile.check = check
-assert(tile:check())
+tile.done = false
 tile.shuffle = shuffle
 
 
@@ -198,6 +206,8 @@ tile.swipe = swipe
 
 tile.shader1 = shader1
 tile.shader2 = shader2
+tile.shader3 = shader3
+tile.shader = shader1
 
 tile.update = update
 
