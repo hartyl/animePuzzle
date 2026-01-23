@@ -14,16 +14,19 @@ local next_time = love.timer.getTime()
 
 local cloud = require 'scripts.cloud'
 Background = lg.newImage("assets/animestyled_hdr.png")
+Accept = lg.newImage("assets/accept.png")
 Images = {
-	{Background, 4,3, "Clouds", credits},
-	{Background, 8,6, "Clouds Hard"},
+	{Background, 4,3, "Clouds", "https://www.youtube.com/watch?v=xvFZjo5PgG0"},
+	{Accept, 2,2, "Acceptance", "https://www.youtube.com/watch?v=xvFZjo5PgG0"},
 }
 for y = 2, 10 do
 for x=2, 10 do
-	table.insert(Images,{require 'scripts.circle', x,y, "Test" .. #Images})
+	table.insert(Images,{require 'scripts.circle', x,y, "Test" .. #Images, "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 end
 end
-table.insert(Images,{require 'scripts.circle', 255,255, "Dont touch this one"})
+table.insert(Images,{require 'scripts.circle', 255,255, "Dont touch this one", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
+table.insert(Images,{Background, 8,6, "Clouds Hard", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
+table.insert(Images,{Accept, 4,2, "Inacceptable", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 --	im:setWrap("clampzero","clampzero")
 local background = g3d.newModel("assets/sphere.obj", Background, nil, nil, nil, "noMap")
 local timer = 0
@@ -32,6 +35,8 @@ local newTile = require 'scripts.game'
 Viewing = 1
 
 camera.top = 300
+
+Context = "play"
 
 local options = {}
 Options = options
@@ -44,7 +49,7 @@ Tile = newTile(unpack(Images[Viewing]))
 Tile.Viewing = Viewing
 camera.lookAt(0,0,1,unpack(Tile.translation))
 
-SelOpt = 1
+SelOpt = 10
 local plane
 function PlaneSet()
 	plane = not plane and require 'scripts.world' or nil
@@ -52,6 +57,12 @@ end
 local house
 function HouseSet()
 	house = not house and require 'scripts.house'() or nil
+end
+ConPre = Context
+function CheckImage()
+	Context = Context~="img" and "img" or ConPre
+	Imx = 0
+	Imy = 0
 end
 local buttons = require 'scripts.buttons'
 GlobalReset()
@@ -74,6 +85,7 @@ end
 
 local canvas = lg.newCanvas(Winw/3+1,Winh,{msaa=2})
 function love.draw()
+if Context~="img" then
 	g3d.shaderPrepare(g3d.shader)
 	g3d.shaderPrepare(Tile.shader1)
 	g3d.shaderPrepare(Tile.shader2)
@@ -107,7 +119,7 @@ function love.draw()
 	if camera.position[3]<50 then
 		Tile:drawInstanced(Tile.shader1)
 	else
-		for i = math.max(1,math.floor(SelOpt)-14),math.min(#options, SelOpt+14) do
+		for i = math.max(1,math.floor(SelOpt)-14),math.min(#options, SelOpt+28) do
 			local tile = options[i]
 			local a = 2-math.abs(tile.translation[3]-camera.position[3])*.5
 			lg.setColor(1,1,1,a)
@@ -131,17 +143,14 @@ function love.draw()
 	--	lg.print(table.concat(selected, ";"))
 
 	lg.setColor(1,1,1,1)
+	end
+	buttons.draw()
+
 	local cur_time = love.timer.getTime()+min_dt/2
 	if cur_time <= next_time then
 		next_time = cur_time
 		return
 	end
-	local preview = Images[Viewing][1]
-	local w,h = preview:getDimensions()
-	local m = math.min(w,h)
-	lg.draw(preview, 0,Winh,0,128/m,128/m, 0,h)
-	lg.print(Images[Viewing][4] .. "    " .. Images[Viewing][2] .. "x" .. Images[Viewing][3],0,Winh-32)
-	buttons.draw()
 	love.timer.sleep(next_time - cur_time)
 end
 

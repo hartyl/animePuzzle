@@ -1,5 +1,4 @@
-local lg = love.graphics
-local g3d = require 'g3d'
+local lg = love.graphics local g3d = require 'g3d'
 
 local selected = {0,0,0}
 local delay = 0
@@ -8,45 +7,102 @@ local bSize = math.max(Winh/8,math.min(Winh/4, 96))
 
 -- eee
 local buttons = {
-	{0				,0				,bSize,bSize, "reset"},
-	{bSize			,0				,bSize,bSize, "shuffle"},
-	{Winw-bSize		,0				,bSize,bSize, "dev"},
-	{Winw-bSize		,bSize*2		,bSize,bSize, "canP"},
-	{Winw-bSize		,bSize*3		,bSize,bSize, "canN"},
-	{bSize*2		,Winh-bSize*2	,bSize,bSize, "TileSpin"},
-	{bSize*2		,Winh-bSize		,bSize,bSize, "Floor"},
-	{bSize*3		,Winh-bSize		,bSize,bSize, "Houses"},
-	{Winw-bSize*3	,Winh-bSize		,bSize,bSize, "Width -"},
-	{Winw-bSize*2	,Winh-bSize		,bSize,bSize, "Width +"},
-	{Winw-bSize*3	,Winh-bSize*2	,bSize,bSize, "Height -"},
-	{Winw-bSize*2	,Winh-bSize*2	,bSize,bSize, "Height +"},
-	{Winw-bSize		,Winh-bSize*2	,bSize,bSize, "Speed -"},
-	{Winw-bSize		,Winh-bSize		,bSize,bSize, "Speed +"},
-	{bSize*3		,0				,bSize,bSize, "Config"},
-	{Winw/2-bSize	,(Winh-bSize)/2,bSize*2,bSize,"Pick an\nImage"},
-	{Winw-bSize*2	,Winh-bSize		,bSize*2,bSize,"Confirm"},
-	{Winw-bSize*3	,Winh-bSize		,bSize,bSize,"Cancel"},
+	{0				,0				,bSize,bSize,		"reset"				,"always"	},
+	{bSize			,0				,bSize,bSize,		"shuffle"			,"play"		},
+	{Winw-bSize		,0				,bSize,bSize,		"dev"				,"always"	},
+	{Winw-bSize		,bSize*2		,bSize,bSize,		"canP"				,"options"	},
+	{Winw-bSize		,bSize*3		,bSize,bSize,		"canN"				,"options"	},
+	{bSize*2		,Winh-bSize*2	,bSize,bSize,		"TileSpin"			,"options"	},
+	{bSize*2		,Winh-bSize		,bSize,bSize,		"Floor"				,"options"	},
+	{bSize*3		,Winh-bSize		,bSize,bSize,		"Houses"			,"options"	},
+	{Winw-bSize*3	,Winh-bSize		,bSize,bSize,		"Width -"			,"options"	},
+	{Winw-bSize*2	,Winh-bSize		,bSize,bSize,		"Width +"			,"options"	},
+	{Winw-bSize*3	,Winh-bSize*2	,bSize,bSize,		"Height -"			,"options"	},
+	{Winw-bSize*2	,Winh-bSize*2	,bSize,bSize,		"Height +"			,"options"	},
+	{Winw-bSize		,Winh-bSize*2	,bSize,bSize,		"Speed -"			,"options"	},
+	{Winw-bSize		,Winh-bSize		,bSize,bSize,		"Speed +"			,"options"	},
+	{bSize*3		,0				,bSize,bSize,		"Config"			,"always"	},
+	{Winw/2-bSize  ,(Winh-bSize)/2	,bSize*2,bSize,		"Pick an\nImage"	,"play"		},
+	{Winw-bSize*2	,Winh-bSize		,bSize*2,bSize,		"Confirm"			,"select"	, img=Accept, w=bSize/480*2, h=bSize/270},
+	{Winw-bSize*3	,Winh-bSize		,bSize,bSize,		"Cancel"			,"select"	, img=require 'scripts.cross', w=bSize/96, h=bSize/96},
+	{0				,Winh-bSize		,bSize,bSize,		""					,"always"	, img=Images[Viewing][1]},
+	{0				,Winh-bSize*2	,bSize,bSize,		"Zoom -"			,"img"		},
+	{0				,Winh-bSize*3	,bSize,bSize,		"Zoom +"			,"img"		},
+	{Winw-bSize*3	,Winh-bSize*2	,bSize*3,bSize*2,	"Open in Explorer"	,"img"		},
 }
 
-local config = true
+local bcon = {}
+for i,v in pairs(buttons) do
+	bcon[v[6]] = not bcon[v[6]] and {} or bcon[v[6]]
+	v.id = i
+end
+bcon["always"] = nil
+bcon[""] = {}
 
-for _,v in pairs(buttons) do buttons[v[5]] = v end
+local contexts = {}
+for i in pairs(bcon) do
+	table.insert(contexts, i)
+end
+
+for _,button in pairs(buttons) do
+	buttons[button[5]] = button
+
+	local s = button[6]
+	local t = (s == "always" and contexts or type(s) == "table" and s or {s})
+	for _,v in pairs(t) do
+		bcon[v][button.id] = button
+	end
+end
+
+bcon["options"][buttons[""].id]=nil
+bcon["img"][buttons.dev.id]=nil
 
 local devMode = true
 local function devChange ()
 	devMode = not devMode
-	local k = devMode and 1 or -1
-	buttons.canN[1] = k* math.abs(buttons.canN[1])
-	buttons.canP[1] = k* math.abs(buttons.canP[1])
 end
-devChange()
 
 function GlobalReset()
-	g3d.camera.position = {0,0,1}
+	--g3d.camera.position = {0,0,1}
 	selected[3] = 0
 	Tile:reset()
 	Tile:swipe(1,1,-1,0)
 end
+
+Imx=0
+Imy=0
+Imz = 0
+
+local function imgUpdate()
+	local im = Images[Viewing]
+	local preview = im[1]
+	local w,h = preview:getDimensions()
+	local m = math.min(w,h)
+	local M = math.min(Winw,Winh) * 1.1^Imz
+	local b = buttons[""]
+	if Context=="img" then
+		local hei = bSize
+		b[2] = Winh-hei
+		b[3] = hei
+		b[4] = hei
+		b[5] = ""
+		b.img = require 'scripts.cross'
+		b.w = bSize/96
+		b.h = bSize/96
+		lg.draw(preview, Winw/2+Imx,Winh/2+Imy,0,M/m,M/m, w/2,h/2)
+	else
+		local hei = h/m*128
+		b[2] = Winh-hei
+		b[3] = w/m*128
+		b[4] = hei
+		b.w = 128/m
+		b.h = 128/m
+		b[5] = im[4] .. "    " .. im[2] .. "x" .. im[3]
+		b.img = preview
+
+	end
+end
+imgUpdate()
 
 local selectCanvasResolution = 16
 local selectCan
@@ -57,23 +113,8 @@ seCanReset()
 
 Tile.spinned = false
 local function confShow ()
-	config = not config
-	local k = config and 1 or -1
-	for _,v in pairs({
-		"Width -",
-		"Width +",
-		"Height -",
-		"Height +",
-		"Speed -",
-		"Speed +",
-		"TileSpin",
-		"Floor",
-		"Houses",
-	}) do
-		buttons[v][1] = k* math.abs(buttons[v][1])
-	end
+	Context = Context ~= "options" and "options" or ConPre
 end
-confShow()
 
 local QueueReset = false
 
@@ -126,18 +167,34 @@ local actions = {
 	end,
 	confShow,
 	function ()
-		LevelSelect = not LevelSelect
+		LevelSelect = true
 		CloudMove = 1
+		Context = ""
 	end,
 	function ()
 		LevelSelect = false
 		Tile = require'scripts.game'(unpack(Images[Viewing]))
 		QueueReset = true
+		CloudMove = 1
+		Context = ""
 	end,
 	function ()
 		LevelSelect = false
 		Viewing = Tile.Viewing
+		CloudMove = 1
+		Context = ""
+	end,
+	CheckImage,
+	function ()
+		Imz = Imz - 1
+	end,
+	function ()
+		Imz = Imz + 1
+	end,
+	function ()
+		love.system.openURL(Images[Viewing][5])
 	end
+	--	new button action
 }
 
 function love.keypressed(k)
@@ -167,25 +224,28 @@ function love.mousepressed(x,y)
 	lg.setMeshCullMode("none")
 	lg.setDepthMode("always", false)
 	--- TODO
-	g3d.shaderPrepare( Tile.shader3)
-	if LevelSelect then
-		for i,tile in pairs(Options) do
-			lg.setColor(((i)/255)%1,math.floor((i)/255)/255,0,1)
-			tile:drawInstanced(Tile.shader3)
+	if Context~="img" then
+		if LevelSelect then
+			g3d.shaderPrepare(Tile.shader3)
+			for i = math.max(1,math.floor(SelOpt)-14),math.min(#Options, SelOpt+28) do
+				local tile = Options[i]
+				lg.setColor(((i)/127)%1,math.floor((i)/127)/127,0,1)
+				tile:drawInstanced(Tile.shader3)
+			end
+		else
+			Tile:drawInstanced(Tile.shader2)
 		end
-	else
-		Tile:drawInstanced(Tile.shader2)
 	end
 	-- UI
 	lg.push()
 	lg.translate(0,Winh/selectCanvasResolution)
 	lg.scale(1/selectCanvasResolution,1/selectCanvasResolution)
 	lg.setShader()
-	for i, v in ipairs(buttons) do
-		lg.setColor(0,0,(i)/255,1)
-		v[2] = -v[2] - v[4]
-		lg.rectangle("fill", unpack(v,1,4))
-		v[2] = -v[2] - v[4]
+	for _, b in pairs(bcon[Context]) do
+		lg.setColor(0,0,(b.id)/127,1)
+		b[2] = -b[2] - b[4]
+		lg.rectangle("fill", unpack(b,1,4))
+		b[2] = -b[2] - b[4]
 	end
 	lg.pop()
 
@@ -193,11 +253,11 @@ function love.mousepressed(x,y)
 
 	lg.setCanvas()
 	local p = selectCan:newImageData()
-	local r,g,b = p:getPixel(x/selectCanvasResolution,(Winh-y)/selectCanvasResolution)
+	local r,g,b = p:getPixel(x/selectCanvasResolution*2,(Winh-y)/selectCanvasResolution*2)
 	if LevelSelect then
-	selected = {r*255,g*255, b*255}
+	selected = {math.ceil(r*127),math.ceil(g*127),math.ceil(b*127)}
 	else
-	selected = {math.ceil(r*Tile.width),math.ceil(g*Tile.height), b*255}
+	selected = {math.ceil(r*Tile.width),math.ceil(g*Tile.height), math.ceil(b*127)}
 	end
 end
 
@@ -215,10 +275,14 @@ function love.mousereleased()
 	delay = math.huge
 end
 
-
 function love.mousemoved(_,_, dx,dy)
-	if delay > 0 or config then return end
+	if delay > 0 or Context=="options" then return end
 	if love.mouse.isDown(1) then
+		if Context=="img" then
+			Imx = Imx + dx
+			Imy = Imy + dy
+			return
+		end
 		if not LevelSelect and selected[1] > 0 or selected[2]>0 then
 			local x,y
 			if math.abs(dx) > math.abs(dy) then
@@ -232,8 +296,8 @@ function love.mousemoved(_,_, dx,dy)
 				Tile:swipe(selected[1], selected[2], x,y)
 			end
 		elseif selected[3] == 0 then
-			if LevelSelect then
-				SelOpt = math.max(1, math.min(#Options, SelOpt + dy/10))
+			if Context == "select" then
+				SelOpt = math.max(-2*7, math.min(#Options+2*7, SelOpt + dy/10))
 				dy = 0
 				moved=true
 			end
@@ -245,32 +309,42 @@ end
 return {
 	update = function (dt)
 		if selected[3] ~= 0 then
-			actions[selected[3]]()
+			local act = actions[selected[3]]
+			assert(act, "action #" .. selected[3] .. " doesn't exists")
+			act()
 			selected[3] = 0
 		end
 		delay = delay - dt
 		local b = buttons["Pick an\nImage"]
 		b[1] = math.abs(b[1])*((Tile.done and not LevelSelect and not QueueReset) and 1 or -1)
-		b = buttons["Confirm"]
-		b[1] = math.abs(b[1])*((LevelSelect) and 1 or -1)
-		b = buttons["Cancel"]
-		b[1] = math.abs(b[1])*((LevelSelect) and 1 or -1)
 		if not LevelSelect and QueueReset and g3d.camera.position[3] <= 1+2^-10  then
 			GlobalReset()
 			QueueReset = false
 		end
 	end,
 	draw = function()
-		if config then
+		buttons.reset[5] = table.concat({love.mouse.getPosition()}, "\n") .. "\n\n" ..
+		table.concat(selected,"\n")
+		imgUpdate()
+
+		if Context == 'options' then
 			lg.setColor(0,0,0,.3)
 			lg.rectangle("fill",0,0,Winw,Winh)
 			lg.setColor(1,1,1,1)
 		end
-		for _, v in ipairs(buttons) do
-			lg.print(v[5],v[1]+4,v[2]+4)
-			lg.rectangle("line", unpack(v,1,4))
+		local i = 0
+		for _, b in pairs(bcon[Context]) do
+			if b.img then
+				lg.setColor(1,1,1,1)
+				lg.draw(b.img,b[1],b[2],0,b.w,b.h)
+			end
+			lg.setColor(1,1,.4,1)
+			lg.print(b[5],b[1]+4,b[2]+4)
+			lg.rectangle("line", unpack(b,1,4))
+			i=i+1
 		end
-		if Tile.done then
+		lg.setColor(1,1,1,1)
+		if Tile.done and Context == "play" then
 			lg.print("Well done!", Winw/2)
 		end
 	end,

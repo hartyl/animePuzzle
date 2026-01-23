@@ -25,7 +25,7 @@ local changing = 1
 local camSpeed = 0
 local cloudSize = 0
 CloudMove = 1
-cloud.update = function (dt)
+function cloud.update(dt)
 	if LevelSelect == true then
 		changing = 1
 		camSpeed = math.min(camSpeed + dt, (camera.top-camera.position[3])/8)
@@ -35,7 +35,13 @@ cloud.update = function (dt)
 			changing = -1
 		end
 	end
-	if camSpeed == 0 then CloudMove = 0 end
+	if math.abs(camera.position[3]-(LevelSelect and camera.top or 1)) <= 0.001 and CloudMove>0 then
+		CloudMove = 0
+		ConPre = camera.position[3]<50 and "play" or "select"
+		if Context ~= "img" and Context ~= "options" then
+			Context = ConPre
+		end
+	end
 
 	camera.position[3] = camera.position[3] + camSpeed * CloudMove
 

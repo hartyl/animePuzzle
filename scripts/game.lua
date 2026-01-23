@@ -91,15 +91,7 @@ vec4 position(mat4 transformProjection, vec4 vertexPosition) {
 	texCoord = InstancePosition.wz + vertexPosition.xy;
     viewPosition = viewMatrix * worldPosition;
     return projectionMatrix * vec4(viewPosition,1);
-} ]] , [[
-varying vec2 texCoord;
-vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
-{
-    vec4 texcolor = Texel(tex, texCoord);
-	texcolor.a = 1;
-    return texcolor * color;
-}
-]])
+} ]] , "g3d/cut.frag")
 
 local shader2 = love.graphics.newShader( [[
 attribute vec4 InstancePosition;

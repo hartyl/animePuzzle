@@ -26,7 +26,7 @@ vec4 position(mat4 transformProjection, vec4 vertexPosition) {
 	// vec3 cameraUp = vec3(cameraRight.y*cosPitch,-cameraRight.x*cosPitch,-cos(cameraRight.z));
 	// vec3 cameraForward = -cross(vec3(cameraRight.xy,0), cameraUp);
 	vec3 pos = InstancePosition.xyz + translation;
-	pos = (pos.z<-50?vec3(pos.xy,pos.z+100):pos);
+	pos = (pos.z<-50.?vec3(pos.xy,pos.z+100.):pos);
 	cameraForward = normalize(pos);
 	vec3 cameraRight = normalize(cross(cameraForward, vec3(0,0,1)));
 	vec3 cameraUp = cross(cameraForward,cameraRight);
@@ -35,11 +35,11 @@ vec4 position(mat4 transformProjection, vec4 vertexPosition) {
 	// worldPosition.xy *= worldPosition.z + 2;
 	// worldPosition = viewMatrix * worldPosition;
 	worldPosition -= cameraForward * vertexPosition.z;
-	viewPosition = viewMatrix * (pos + worldPosition * (InstancePosition.w+1)*size);
+	viewPosition = viewMatrix * (pos + worldPosition * (InstancePosition.w+1.)*size);
 	// viewPosition.xy -= vertexPosition.xy * (InstancePosition.w+1);
 	screenPosition = projectionMatrix * vec4(viewPosition,1);
 	// texCoord = worldPosition.xy;
-	texCoord.xy = (vertexPosition.xy)*7/8.1;
+	texCoord.xy = (vertexPosition.xy)*7./8.1;
 	texCoord.z = dot(worldPosition,viewMatrix*vec3(0,1,1));
 
 	// save some data from this vertex for use in fragment shaders
@@ -56,6 +56,6 @@ vec4 position(mat4 transformProjection, vec4 vertexPosition) {
 vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
 {
 	float texcolor = Texel(tex, texCoord.xy).r;
-	return (dot(worldPosition-cameraForward*texcolor,vec3(0,-1,1))<0 ? vec4(.4,.5,.6,1) : vec4(.8,.9,1,1));
+	return (dot(worldPosition-cameraForward*texcolor,vec3(0,-1,1))<0. ? vec4(.4,.5,.6,1) : vec4(.8,.9,1,1));
 }
 #endif
