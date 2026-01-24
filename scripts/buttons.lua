@@ -9,8 +9,12 @@ local cross = require 'scripts.cross'
 local crossw, crossh = cross:getDimensions()
 local function updateButtons(s)
 	bSize = s
+	local hor = Winw>Winh
+	local coy = hor and -s or -s*2.5
+	local mx = hor and -s*3 or -s*2
+	local my = hor and -s or -s*3
 	for i,v in next, {
-		{0		,0			,s,s	,"reset"			,"always"	},
+		{0		,0			,s,s	,"reset"			,"play"	},
 		{s		,0			,s,s	,"shuffle"			,"play"		},
 		{-s		,0			,s,s	,"dev"				,"always"	},
 		{-s		,s*2		,s,s	,"canP"				,"options"	},
@@ -18,21 +22,21 @@ local function updateButtons(s)
 		{0		,-s*3		,s,s	,"TileSpin"			,"options"	},
 		{0		,-s*2		,s,s	,"Floor"			,"options"	},
 		{0		,-s			,s,s	,"Houses"			,"options"	},
-		{-s*3	,-s			,s,s	,"Width -"			,"options"	},
+		{mx		,my			,s,s	,"Width -"			,"options"	},
 		{-s*2	,-s			,s,s	,"Width +"			,"options"	},
-		{-s*3	,-s*2		,s,s	,"Height -"			,"options"	},
+		{mx		,my-s		,s,s	,"Height -"			,"options"	},
 		{-s*2	,-s*2		,s,s	,"Height +"			,"options"	},
 		{-s		,-s*2		,s,s	,"Speed -"			,"options"	},
 		{-s		,-s			,s,s	,"Speed +"			,"options"	},
 		{0		,s			,s,s	,"Config"			,"always"	},
-		{s*5  	,(Winh-s)/2	,s*2,s	,"Pick an\nImage"	,"play"		},
-		{-s*2	,-s			,s*2,s	,"Confirm"			,"select"	, img=Accept, w=s/480*2, h=s/270},
-		{-s*3	,-s			,s,s	,"Cancel"			,"select"	, img=cross, w=s/crossw, h=s/crossh},
+		{Winw/2-s,Winh/2-s	,s*2,s	,"Pick an\nImage"	,"play"		},
+		{-s*2	,coy		,s*2,s	,"Confirm"			,"select"	, img=Accept, w=s/480*2, h=s/270},
+		{0		,0			,s,s	,"Cancel"			,"select"	, img=cross, w=s/crossw, h=s/crossh},
 		{0		,-s			,s,s	,""					,"always"	, img=Images[Viewing][1]},
-		{0		,-s			,s,s	,"exit"				,"img"		, img=cross, w=s/crossw, h=s/crossh},
-		{0		,-s*2		,s,s	,"Zoom -"			,"img"		},
-		{0		,-s*3		,s,s	,"Zoom +"			,"img"		},
-		{-s*3	,0			,s*3,s*2,"Open in Explorer"	,"img"		},
+		{-s		,-s			,s,s	,"exit"				,"img"		, img=cross, w=s/crossw, h=s/crossh},
+		{0		,-s*1		,s,s	,"Zoom -"			,"img"		},
+		{0		,-s*2		,s,s	,"Zoom +"			,"img"		},
+		{0		,0			,s*3,s*2,"Open in Explorer"	,"img"		},
 	} do
 		for j,b in next,v do
 			buttons[i] = buttons[i] or {}
@@ -70,6 +74,7 @@ bcon["img"][buttons.dev.id]=nil
 bcon["img"][buttons.reset.id]=nil
 bcon["img"][buttons.Config.id]=nil
 bcon["img"][buttons[""].id]=nil
+bcon["select"][buttons.reset.id]=nil
 
 local devMode = false
 local function devChange ()
@@ -92,14 +97,14 @@ local function imgUpdate()
 	local preview = im[1]
 	local w,h = preview:getDimensions()
 	local m = math.min(w,h)
-	local M = math.min(Winw,Winh) * 1.1^Imz
 	local b = buttons[""]
 	if Context=="img" then
+		local M = math.min(Winw,Winh) * 1.1^Imz
 		lg.draw(preview, Winw/2+Imx,Winh/2+Imy,0,M/m,M/m, w/2,h/2)
 	else
 		local bs = bSize*1.5
 		local hei = h/m*bs
-		b[2] = Winh-hei
+		b[2] = -hei
 		b[3] = w/m*bs
 		b[4] = hei
 		b.w = bs/m
@@ -237,8 +242,8 @@ function love.mousepressed(x,y)
 			g3d.shaderPrepare(Tile.shader3)
 			for i = math.max(1,math.floor(SelOpt)-14),math.min(#Options, SelOpt+28) do
 				local tile = Options[i]
-			local r = (i)%128
-				lg.setColor(r/128,(i-r)/128^2,0,1)
+			local r = (i)%127.5
+			lg.setColor(r/127.5,(i-r+1)/127.5^2,0,1)
 				tile:drawInstanced(Tile.shader3)
 			end
 		else
@@ -251,7 +256,7 @@ function love.mousepressed(x,y)
 	lg.scale(1/selectCanvasResolution,1/selectCanvasResolution)
 	lg.setShader()
 	for _, b in pairs(bcon[Context]) do
-		lg.setColor(0,0,(b.id)/128,1)
+		lg.setColor(0,0,(b.id)/127.5,1)
 		lg.rectangle("fill", b[1]%Winw,b[2]%Winh, unpack(b,3,4))
 	end
 	lg.pop()
@@ -269,9 +274,9 @@ function love.mousepressed(x,y)
 		r,g,b = 0,0,0
 	end
 	if LevelSelect then
-		selected = {math.ceil(r*128)+math.ceil(g*128)*128,0,math.ceil(b*128)}
+		selected = {math.ceil(r*127.5)+math.ceil(g*127.5)*127.5,0,math.ceil(b*127.5)}
 	else
-		selected = {math.ceil(r*Tile.width),math.ceil(g*Tile.height), math.ceil(b*128)}
+		selected = {math.ceil(r*Tile.width),math.ceil(g*Tile.height), math.ceil(b*127.5)}
 		swipeLock = false
 	end
 end

@@ -137,12 +137,13 @@ function camera.firstPersonMovement(dt)
 	end
 end
 
+local dpi = 1/300
 -- use this in your love.mousemoved function, passing in the movements
 function camera.firstPersonLook(dx,dy)
 	-- capture the mouse
 	--love.mouse.setRelativeMode(true)
 
-	local sensitivity = 1/300
+	local sensitivity = camera.fov*dpi
 	fpsController.direction = fpsController.direction - dx*sensitivity
 	fpsController.pitch = math.max(math.min(fpsController.pitch - dy*sensitivity, math.pi*0.5), math.pi*-0.5)
 

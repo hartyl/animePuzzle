@@ -24,7 +24,7 @@ for x=2, 10 do
 	table.insert(Images,{require 'scripts.circle', x,y, "Test" .. #Images, "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 end
 end
-table.insert(Images,{require 'scripts.circle', 255,255, "Dont touch this one", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
+table.insert(Images,{require 'scripts.circle', 127,127, "Dont touch this one", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 table.insert(Images,{Background, 8,6, "Clouds Hard", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 table.insert(Images,{Accept, 4,2, "Inacceptable", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 local background = g3d.newModel("assets/sphere.obj", Background, nil, nil, nil, "noMap")
@@ -73,6 +73,7 @@ LevelSelect = false
 local canvas
 local function updateProjectionMatrix()
 	camera.aspectRatio = Winw/Winh
+	camera.fov = math.pi/2/camera.aspectRatio^.5
 	camera.updateProjectionMatrix()
 	canvas = lg.newCanvas(math.ceil(Winw/3),Winh,{msaa=2})
 	for _,shader in next, Shaders do
@@ -101,14 +102,15 @@ function love.update(dt)
 end
 
 updateProjectionMatrix()
+
 function love.draw()
 if Context~="img" then
 	g3d.shaderPrepare(g3d.shader)
 	g3d.shaderPrepare(Tile.shader1)
 	g3d.shaderPrepare(Tile.shader2)
 	g3d.shaderPrepare(cloud.shader)
-	lg.setCanvas(canvas)
 	--	ready
+	lg.setCanvas(canvas)
 	lg.setMeshCullMode("none")
 	background:setTranslation(unpack(g3d.camera.position))
 	background:draw()
@@ -121,12 +123,9 @@ if Context~="img" then
 	end
 	lg.setCanvas()
 	lg.setShader()
-
 	lg.setDepthMode("always", false)
 	lg.draw(canvas,0.5,Winh,0,3,-1)
 	lg.setDepthMode("lequal", true)
-
-
 	lg.setColor(1,1,1,1)
 
 	if cloudSize>0 then
@@ -138,6 +137,7 @@ if Context~="img" then
 	else
 		for i = math.max(1,math.floor(SelOpt)-14),math.min(#options, SelOpt+28) do
 			local tile = options[i]
+			local i = i-1
 			local a = 2-math.abs(tile.translation[3]-camera.position[3])*.5
 			lg.setColor(1,1,1,a)
 			local i6 = math.floor(i/6)
