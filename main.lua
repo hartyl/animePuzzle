@@ -1,10 +1,10 @@
 -- written by groverbuger for g3d
 -- MIT license
 
+Shaders = {}
 local lg = love.graphics
 local g3d = require "g3d"
 local camera = g3d.camera
-local pi = math.pi
 Winw, Winh = lg.getDimensions()
 
 local min_dt = 1/60
@@ -27,7 +27,6 @@ end
 table.insert(Images,{require 'scripts.circle', 255,255, "Dont touch this one", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 table.insert(Images,{Background, 8,6, "Clouds Hard", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 table.insert(Images,{Accept, 4,2, "Inacceptable", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
---	im:setWrap("clampzero","clampzero")
 local background = g3d.newModel("assets/sphere.obj", Background, nil, nil, nil, "noMap")
 local timer = 0
 
@@ -70,7 +69,25 @@ GlobalReset()
 cloud.shader:send('size', 1)
 local cloudSize = 0
 LevelSelect = false
+
+local canvas
+local function updateProjectionMatrix()
+	camera.aspectRatio = Winw/Winh
+	camera.updateProjectionMatrix()
+	canvas = lg.newCanvas(math.ceil(Winw/3),Winh,{msaa=2})
+	for _,shader in next, Shaders do
+		shader:send("projectionMatrix", g3d.camera.projectionMatrix)
+	end
+	SeCanReset()
+	buttons.updateButtons(math.min(Winh/6, math.max(Winh/8,96)))
+end
+
 function love.update(dt)
+	local ww,wh = lg.getDimensions()
+	if ww~=Winw or wh ~= Winh then
+		Winw, Winh = ww,wh
+		updateProjectionMatrix()
+	end
 	next_time = next_time + min_dt
 	timer = timer + dt
 	g3d.camera.firstPersonMovement(dt)
@@ -83,7 +100,7 @@ function love.update(dt)
 	cloudSize = cloud.update(dt)
 end
 
-local canvas = lg.newCanvas(Winw/3+1,Winh,{msaa=2})
+updateProjectionMatrix()
 function love.draw()
 if Context~="img" then
 	g3d.shaderPrepare(g3d.shader)
@@ -123,16 +140,15 @@ if Context~="img" then
 			local tile = options[i]
 			local a = 2-math.abs(tile.translation[3]-camera.position[3])*.5
 			lg.setColor(1,1,1,a)
-			local i7 = math.floor(i/7)
-			local angle = -(i+i7*.5)*math.pi/3+timer/20*((i7%2)*2-1)
-			tile.translation = {-math.sin(angle)*2, math.cos(angle)*2, camera.top-.2+(math.floor(i/7)-SelOpt/7)*1.2}
+			local i6 = math.floor(i/6)
+			local angle = -(i+i6*.5)*math.pi/3+timer/20*((i6%2)*2-1)
+			tile.translation = {-math.sin(angle)*2, math.cos(angle)*2, camera.top-.2+(math.floor(i/6)-SelOpt/6)*1.2}
 			if a > 0 then
 				tile:setRotation(-math.pi/2-(camera.position[3]-tile.translation[3])*.1,0,angle,0)
 				tile:drawInstanced()
 			end
 		end
 	end
-
 
 	lg.setShader()
 	buttons.devDraw()

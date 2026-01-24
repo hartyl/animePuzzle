@@ -61,6 +61,7 @@ g3d.camera.updateViewMatrix()
 -- so that far polygons don't overlap near polygons
 love.graphics.setDepthMode("lequal", true)
 g3d.shader:send("projectionMatrix", g3d.camera.projectionMatrix)
+table.insert(Shaders,g3d.shader)
 
 -- get rid of g3d from the global namespace and return it instead
 local g3d = g3d

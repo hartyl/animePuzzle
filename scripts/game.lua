@@ -64,14 +64,13 @@ local function swipe(self, X,Y, dx,dy)
 	local i = X+(Y-1)*self.width
 	local ex, ey = self.emptySpot[1]-dx*self.iwidth, self.emptySpot[2]-dy*self.iheight
 	local v = self.positions[i]
-	if math.abs(v[2]-ey)<self.iheight/2 then
-		if math.abs(v[1]-ex)<self.iwidth/2 then
-			local x,y = v[1], v[2]
-			self.positions[i][1],self.positions[i][2] = self.positions[i][1]+dx*self.iwidth, self.positions[i][2]+dy*self.iheight
-			self.emptySpot = {x,y}
-			self.anim = 0
-			self.moving = i
-		end
+	if v and math.abs(v[2]-ey)<self.iheight/2 and math.abs(v[1]-ex)<self.iwidth/2 then
+		local x,y = v[1], v[2]
+		self.positions[i][1],self.positions[i][2] = self.positions[i][1]+dx*self.iwidth, self.positions[i][2]+dy*self.iheight
+		self.emptySpot = {x,y}
+		self.anim = 0
+		self.moving = i
+		return true
 	end
 end
 
@@ -108,6 +107,7 @@ vec4 position(mat4 transformProjection, vec4 vertexPosition) {
     worldPosition = (modelMatrix * (vec4(InstancePosition.xy,0,0) +vertexPosition)).xyz;
 	texCoord = InstancePosition.wz + vertexPosition.xy;
     viewPosition = viewMatrix * worldPosition;
+	viewPosition.y=-viewPosition.y;
     return projectionMatrix * vec4(viewPosition,1);
 }
 ]],[[
@@ -129,6 +129,7 @@ varying vec3 viewPosition;
 vec4 position(mat4 transformProjection, vec4 vertexPosition) {
     worldPosition = (modelMatrix * (vec4(InstancePosition.xy,0,0) +vertexPosition)).xyz;
     viewPosition = viewMatrix * worldPosition;
+	viewPosition.y=-viewPosition.y;
     return projectionMatrix * vec4(viewPosition,1);
 }
 ]],[[
@@ -138,9 +139,9 @@ vec4 effect( vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords )
 }
 ]])
 
-shader1:send("projectionMatrix", g3d.camera.projectionMatrix)
-shader2:send("projectionMatrix", g3d.camera.projectionMatrix)
-shader3:send("projectionMatrix", g3d.camera.projectionMatrix)
+table.insert(Shaders,shader1)
+table.insert(Shaders,shader2)
+table.insert(Shaders,shader3)
 
 SPD = 10
 local function update(self,dt)

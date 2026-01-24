@@ -3,7 +3,7 @@ local g3d = require 'g3d'
 local camera = g3d.camera
 local cloud = g3d.newModel("assets/circle.obj", require 'scripts.circle', {0,0,0}, nil, 0.5)
 cloud.shader = lg.newShader('scripts/depthboard.glsl')
-cloud.shader:send("projectionMatrix", g3d.camera.projectionMatrix)
+table.insert(Shaders,cloud.shader)
 local i = table.insert
 local p = {}
 local r = math.random
