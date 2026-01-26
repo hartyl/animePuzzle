@@ -242,8 +242,8 @@ function love.mousepressed(x,y)
 			g3d.shaderPrepare(Tile.shader3)
 			for i = math.max(1,math.floor(SelOpt)-14),math.min(#Options, SelOpt+28) do
 				local tile = Options[i]
-			local r = (i)%127.5
-			lg.setColor(r/127.5,(i-r+1)/127.5^2,0,1)
+				local r = (i)/255
+				lg.setColor(r,0,0,1)
 				tile:drawInstanced(Tile.shader3)
 			end
 		else
@@ -256,7 +256,7 @@ function love.mousepressed(x,y)
 	lg.scale(1/selectCanvasResolution,1/selectCanvasResolution)
 	lg.setShader()
 	for _, b in pairs(bcon[Context]) do
-		lg.setColor(0,0,(b.id)/127.5,1)
+		lg.setColor(0,0,(b.id)/127,1)
 		lg.rectangle("fill", b[1]%Winw,b[2]%Winh, unpack(b,3,4))
 	end
 	lg.pop()
@@ -274,9 +274,10 @@ function love.mousepressed(x,y)
 		r,g,b = 0,0,0
 	end
 	if LevelSelect then
-		selected = {math.ceil(r*127.5)+math.ceil(g*127.5)*127.5,0,math.ceil(b*127.5)}
+		selected = {math.floor(r*255+.5),0,math.ceil(b*127)}
+		--	buttons.Cancel[5] =
 	else
-		selected = {math.ceil(r*Tile.width),math.ceil(g*Tile.height), math.ceil(b*127.5)}
+		selected = {math.ceil(r*Tile.width),math.ceil(g*Tile.height), math.ceil(b*127)}
 		swipeLock = false
 	end
 end
@@ -286,6 +287,7 @@ function love.mousereleased()
 	if LevelSelect then
 		if not moved and selected[1]>0 or selected[2]>0 then
 			Viewing = selected[1]
+			assert(Images[Viewing], table.concat({selected[1],selected[2],math.floor(selected[1])}, "\n"))
 		end
 		moved = false
 	end

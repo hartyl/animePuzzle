@@ -51,11 +51,21 @@ local function swipeAny(self, dx,dy)
 end
 
 local function shuffle(self)
-	for _=1,100 do
-		local h = math.random(0,1)
-		local v = 1-h
-		local d = math.random(0,1)*2-1
-		self:swipeAny(h*d,v*d)
+	if self.width <= 2 or self.height <= 2 then
+		for _=1,self.width*self.height do
+			local h = math.random(0,1)
+			local v = 1-h
+			local d = math.random(0,1)*2-1
+			self:swipeAny(h*d,v*d)
+		end
+	else
+		for i=2,#self.positions do
+			local a = self.positions[i]
+			local b = self.positions[math.random(2,#self.positions)]
+			local x,y = unpack(a,1,2)
+			a[1], a[2] = unpack(b,1,2)
+			b[1], b[2] = x,y
+		end
 	end
 	self:instanciate(self.positions)
 end

@@ -16,7 +16,7 @@ local cloud = require 'scripts.cloud'
 Background = lg.newImage("assets/animestyled_hdr.png")
 Accept = lg.newImage("assets/accept.png")
 Images = {
-	{Background, 4,3, "Clouds", "https://www.youtube.com/watch?v=xvFZjo5PgG0"},
+	{Background, 4,3, "Clouds", "https://www.artstation.com/artwork/N59ZLN"},
 	{Accept, 2,2, "Acceptance", "https://www.youtube.com/watch?v=xvFZjo5PgG0"},
 }
 for y = 2, 10 do
@@ -24,8 +24,7 @@ for x=2, 10 do
 	table.insert(Images,{require 'scripts.circle', x,y, "Test" .. #Images, "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 end
 end
-table.insert(Images,{require 'scripts.circle', 127,127, "Dont touch this one", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
-table.insert(Images,{Background, 8,6, "Clouds Hard", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
+table.insert(Images,{Background, 8,6, "Clouds Hard", "https://www.youtube.com/watch?v=_l8B7RdtOsU"})
 table.insert(Images,{Accept, 4,2, "Inacceptable", "https://www.youtube.com/watch?v=xvFZjo5PgG0"})
 local background = g3d.newModel("assets/sphere.obj", Background, nil, nil, nil, "noMap")
 local timer = 0
